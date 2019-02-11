@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- ## for client-side less
+  <link rel="stylesheet/less" type="text/css" href="/theme/css/style.less">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js" type="text/javascript"></script>
+  -->
+  <link rel="icon" type="image/vnd.microsoft.icon" href="/">
+  <link rel="stylesheet" type="text/css" href="/theme/css/normalize.css">
+  <link rel="stylesheet" type="text/css" href="/theme/css/style.min.css">
+  <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css">
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Roboto+Mono">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
+  <link rel="stylesheet" href="/extras/academicons-1.8.6/css/academicons.min.css"/>
+  <link rel="stylesheet" type="text/css" href="/theme/css/hatena-bookmark-icon.css">
+  <link rel="stylesheet" type="text/css" href="/static/custom.css">
+
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Viktor Pekar">
+  <meta name="description" content="Posts and writings by Viktor Pekar">
+
+
+<meta name="keywords" content="Clustering, MajorClust, word2vec, Python">
+
+  <title>
+    Viktor Pekar
+&ndash; Semantic clustering of words with MajorClust and word2vec  </title>
+
+</head>
+
+<body>
+  <main>
+    <header>
+      <div class="site-name">
+        <a href="">Viktor Pekar</a>
+      </div>
+      <p>
+
+      <a href="/pages/about.html">About</a> |
+      <a href="/pages/research.html">Research</a> |
+      <a href="/pages/teaching.html">Teaching</a> |
+      <!--<a href="/pages/consultancy.html">Consulting</a> | -->
+      <a href="/index.html">Blog</a> |
+      <a href="/tags.html">Tags</a> |
+      <a href="/pages/contact.html">Contact</a>
+
+      <!--
+        <a href="/archives.html">Archive</a>
+    -->
+
+      </p>
+    </header>
+
+<article>
+  <div class="article__title">
+    <h1>Semantic clustering of words with MajorClust and word2vec</h1>
+  </div>
+  <div class="article__meta">
+    <p class="article__meta__post-date">Posted on: Sun 10 February 2019</p>
+ Tags:
+      <a href="/tag/clustering.html">#Clustering</a>,      <a href="/tag/majorclust.html">#MajorClust</a>,      <a href="/tag/word2vec.html">#word2vec</a>,      <a href="/tag/python.html">#Python</a>    </p>
+  </div>
+  <div class="article__text">
+    <p>In a recent project, I had to arrange around a thousand words into semantic clusters. For this problem, the <a href="https://en.wikipedia.org/wiki/Vector_space_model">Vector Space Model</a> seems well-suited. Previous research has released word vectors already trained on large text collections using methods like <a href="https://en.wikipedia.org/wiki/Word2vec">word2vec</a> or <a href="https://nlp.stanford.edu/projects/glove/">GloVe</a>. Such pre-computed vectors often prove to be more effective for different NLP tasks than those created ad hoc for a particular application, mainly due to the fact they were build on very large amounts of texts. These vectors can be used to produce a similarity matrix, which can then be used for word clustering.</p>
+<p>The next step is the choice of a clustering algorithm. While there are a few popular ones like K-means and DBSCAN available in <a href="https://scikit-learn.org/stable/modules/clustering.html#clustering">scikit-learn</a>, I found <a href="https://www.semanticscholar.org/paper/Document-Categorization-with-MAJORCLUST-Stein-Eissen/2380d838f03d0564631475904dc61e4c077a2997">Majorclust</a> to be much easier to fine-tune for this problem. MajorClust is a non-hierarchical, exclusive clustering algorithm. The great part about MajorClust is that it does not require stopping criteria like the number of clusters, or the number of elements in a cluster, to be pre-set beforehand: in many applications such semantic clustering of words these are very hard to guess in advance.</p>
+<p>The algorithm is described in <a href="https://www.semanticscholar.org/paper/Document-Categorization-with-MAJORCLUST-Stein-Eissen/2380d838f03d0564631475904dc61e4c077a2997">(Stein and Meyer zu Essen, 2002)</a> in application to document clustering (see p.4 for pseudocode and explanation). Below is its Python implementation taken from <a href="https://gist.github.com/baali/7983261">here</a> (<code>cosine_matrix</code> is a pre-computed matrix of document similarities):</p>
+<div class="highlight"><pre><span></span><span class="c1"># first assign each document to its own cluster</span>
+<span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_of_samples</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="bp">False</span>
+<span class="k">while</span> <span class="ow">not</span> <span class="n">t</span><span class="p">:</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="c1"># iterate over the documents</span>
+    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_of_samples</span><span class="p">):</span>
+        <span class="c1"># find the cluster with the biggest similarity to the document</span>
+        <span class="n">new_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">cosine_matrix</span><span class="p">[</span><span class="n">index</span><span class="p">]))</span>
+        <span class="c1"># if the cluster of the document has changed, iterate over the documents again</span>
+        <span class="k">if</span> <span class="n">indices</span><span class="p">[</span><span class="n">new_index</span><span class="p">]</span> <span class="o">!=</span> <span class="n">indices</span><span class="p">[</span><span class="n">index</span><span class="p">]:</span>
+            <span class="n">indices</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span><span class="n">new_index</span><span class="p">]</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="bp">False</span>
+</pre></div>
+
+
+<p>In brief, the algorithm begins by assigning every document to its own cluster. At each iteration, each document gets assigned to the cluster, to which it has the biggest similarity. A document's similarity to a cluster is calculated as the sum of the document's cosine similarities to each of the cluster's members. Thus a document can be re-clustered to other clusters at later iterations. Clustering stops when no document changes its cluster.</p>
+<p>However I found that two modifications to this algorithm are necessary in my case. First, if many elements in the matrix have non-zero similarities to many other elements (e.g., documents in the collection contain a lot of overlapping vocabulary, or word vectors have lots of non-zero values in the same columns, as is the case with the word2vec model), then MajorClust will end up putting all elements into one single cluster. Therefore, it was necessary to introduce a threshold below which similarities get cancelled out, i.e. set to 0. After some experimentation I found that a good threshold is 0.99, i.e. only similarities higher that value were kept.</p>
+<p>Second, after cancelling out low similarities, there will be many elements with no similarity to any other element. I.e., they should either constitute a cluster of its own or be treated as noise. MajorClust will happily merge two elements together even if the similarity between them is 0, thus producing one large catch-all cluster with lots of unrelated words. So the other modification is to prevent assigning an element to a cluster if its similarity equals zero.</p>
+<p>With these two modifications, MajorClust came up with quite reasonable clusters like:</p>
+<ul>
+<li>
+<p><em>car, vehicle, bike, truck, drive, driver, bus, helmet, cycle, motorcycle, pickup</em></p>
+</li>
+<li>
+<p><em>game, xbox, player, warfare, cod, dlc, battlefield, playstation, wii, nintendo, fifa, controller, sims, console, play, titanfall, ball, skyrim, gta, halo, gaming, ops, code, madden</em></p>
+</li>
+<li>
+<p><em>ford, toyota, bmw, audi, honda, tesla, nissan, jeep, kia, suv, ferrari, range, mustang, chevy, subaru, skoda, lexus, porsche, lamborghini, hyundai, moto, mercedes, gmc, benz, rover, chevrolet, mazda, mower, golf, merc, jaguar, fords, turbo, tractor, duster, diesel, camry, gtr, volvo, auto, corvette, renault, dodge, datsun, volkswagen</em></p>
+</li>
+<li>
+<p><em>carrier, boat, flight, baggage, plane, drone, air, jet, back, trip, train, team, aircraft, balloon, yacht, space, cabin, fleet</em></p>
+</li>
+<li>
+<p><em>gun, datum, weapon, van, mag, ben, rifle, firearm, ammo, shotgun</em></p>
+</li>
+<li>
+<p><em>influence, supply, gas, power, petrol, fuel, electricity, boost, focus, booster, energy</em></p>
+</li>
+</ul>
+<p>Examples of words that ended up in singleton clusters: <em>thing, brand, note, coin, item, box, case, pack, set, time, switch, machine</em>. As one can see, these are words with many different meanings, so that it is hard to assign them to any particular semantic cluster.</p>
+<p>Below is a t-SNE visualization of the clustered words (click the image for a zoomable graph).</p>
+<p><a href="./pages/majorclustviz.html"><img alt="alt text" src="./images/majorclust1.png" title="Click for an interactive graph"></a></p>
+<p>The implementation of MajorClust used to derive these clusters, along with the scikit-learn API, can be found <a href="https://github.com/vpekar/sklearn-majorclust">here</a>.</p>
+  </div>
+<section class="social-tools">
+
+    <div class="social-tools__title">
+      <p>Share this post</p>
+    </div>
+
+    <div class="social-tools__buttons">
+      <a class="tweet-blogpost-button"
+         href="https://twitter.com/share?text=Viktor Pekar - Semantic clustering of words with MajorClust and word2vec"
+         onClick="window.open(encodeURI(decodeURI(this.href)), 'tweetwindow', 'width=650, height=470'); return false;" >
+        <i class="fab fa-twitter"></i>
+      </a>
+
+      <a class="facebook-share-button"
+         href="https://www.facebook.com/sharer/sharer.php?u=/semantic-clustering-of-words-with-majorclust-and-word2vec.html"
+         onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;" >
+        <i class="fab fa-facebook"></i>
+      </a>
+
+      <a class="pocket-add-button"
+         href="http://www.tumblr.com/share/link?url=/semantic-clustering-of-words-with-majorclust-and-word2vec.html&title=Semantic clustering of words with MajorClust and word2vec"
+         onclick="window.open(this.href, 'add-to-get-pocket', 'width=490,height=530');return false;"
+         title="add to tumblr" >
+        <i class="fab fa-tumblr"></i>
+      </a>
+
+      <a class="pocket-add-button"
+         href="https://getpocket.com/edit?url=/semantic-clustering-of-words-with-majorclust-and-word2vec.html&title=Semantic clustering of words with MajorClust and word2vec"
+         onclick="window.open(this.href, 'add-to-get-pocket', 'width=490,height=530');return false;"
+         title="add to pocket" >
+        <i class="fab fa-get-pocket"></i>
+      </a>
+
+
+    </div>
+
+
+</section>
+</article>
+
+
+  </main>
+    <footer>
+      <!--
+      <div class="author__logo">
+          <img src="../images/fb.jpg" alt="logo">
+      </div>-->
+      <section class="author">
+        <!--<div class="author__name">
+          <a href="/pages/about.html">Viktor Pekar</a>
+          <p></p>
+        </div> -->
+        <div class="author__link">
+          <ul>
+            <li><a href="https://profile.codersrank.io/user/vpekar" title="Codersrank"><i class="fas fa-link"></i></a></li>
+            <li>
+              <a href="https://twitter.com/pekarv" target="_blank" title="twitter">
+                <i class="fab fa-twitter-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.linkedin.com/in/vpekar/" target="_blank" title="linkedin">
+                <i class="fab fa-linkedin"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://github.com/vpekar" target="_blank" title="github">
+                <i class="fab fa-github-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.researchgate.net/profile/Viktor_Pekar" target="_blank" title="researchgate">
+                <i class="fab fa-researchgate"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://scholar.google.co.uk/citations?user=wZg3myQAAAAJ&hl=en" target="_blank" title="googlescholar">
+                <i class="ai ai-google-scholar-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://dblp.uni-trier.de/pers/hd/p/Pekar_0001:Viktor" target="_blank" title="dblp">
+                <i class="ai ai-dblp-square"></i>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+      <div class="ending-message">
+        <p>&copy; Viktor Pekar. Powered by <a href="http://getpelican.com" target="_blank">Pelican</a>, Theme is using <a href="https://github.com/laughk/pelican-hss" target="_blank">HSS</a>. </p>
+      </div>
+    </footer>
+    <!-- Default Statcounter code for Vpekar.github.io
+    http://vpekar.github.io/ -->
+    <script type="text/javascript">
+    var sc_project=11724865;
+    var sc_invisible=1;
+    var sc_security="f8dc32d7";
+    </script>
+    <script type="text/javascript"
+    src="https://www.statcounter.com/counter/counter.js"
+    async></script>
+    <noscript><div class="statcounter"><a title="hit counter"
+    href="http://statcounter.com/" target="_blank"><img
+    class="statcounter"
+    src="//c.statcounter.com/11724865/0/f8dc32d7/1/" alt="hit
+    counter"></a></div></noscript>
+<!-- End of Statcounter Code -->
+</body>
+</html>
