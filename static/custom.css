@@ -1,0 +1,40 @@
+body{
+    font-size: 16px;
+}
+
+article a {
+    color: #0645AD;
+}
+
+div.buttons a {
+    padding: 5px 15px 5px 15px;
+    border: 3px solid #eeeeee;
+    -webkit-border-radius: 15px;
+    color: #999999;
+    text-decoration: none;
+}
+
+#banner .copy{
+    background: none repeat scroll 0 0 rgba(0, 0, 0, 0.3);
+    display: none;
+}
+
+#banner h1{
+    text-transform: none;
+}
+
+#banner {
+    padding: 100px 0;
+}
+
+.img-thumbnail{
+    max-width: 70%;
+}
+
+a.entry-content{
+    border-bottom: 1px dotted;
+}
+
+header, footer {
+    background-color: #F5F5F5;
+}

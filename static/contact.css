@@ -1,0 +1,13 @@
+/* ==========================================================================
+#CONTACT PAGE
+========================================================================== */
+/* an adaptation of http://tympanus.net/codrops/2015/01/08/inspiration-text-input-effects/ */
+
+#contactform, .form {
+    margin-top: 2rem;
+}
+
+fieldset {
+    border: none;
+}
+
