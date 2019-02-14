@@ -65,8 +65,22 @@
       <a href="http://vpekar.github.com/tag/clustering.html">#Clustering</a>,      <a href="http://vpekar.github.com/tag/majorclust.html">#MajorClust</a>,      <a href="http://vpekar.github.com/tag/word2vec.html">#word2vec</a>,      <a href="http://vpekar.github.com/tag/python.html">#Python</a>    </p>
   </div>
   <div class="article__text">
-    <p>In a recent project, I had to arrange around a thousand words into semantic clusters. For this problem, the <a href="https://en.wikipedia.org/wiki/Vector_space_model">Vector Space Model</a> seems well-suited. Previous research has released word vectors already trained on large text collections using methods like <a href="https://en.wikipedia.org/wiki/Word2vec">word2vec</a> or <a href="https://nlp.stanford.edu/projects/glove/">GloVe</a>. Such pre-computed vectors often prove to be more effective for different NLP tasks than those created ad hoc for a particular application, mainly due to the fact they were build on very large amounts of texts. These vectors can be used to produce a similarity matrix, which can then be used for word clustering.</p>
-<p>The next step is the choice of a clustering algorithm. While there are a few popular ones like K-means and DBSCAN available in <a href="https://scikit-learn.org/stable/modules/clustering.html#clustering">scikit-learn</a>, I found <a href="https://www.semanticscholar.org/paper/Document-Categorization-with-MAJORCLUST-Stein-Eissen/2380d838f03d0564631475904dc61e4c077a2997">Majorclust</a> to be much easier to fine-tune for this problem. MajorClust is a non-hierarchical, exclusive clustering algorithm. The great part about MajorClust is that it does not require stopping criteria like the number of clusters, or the number of elements in a cluster, to be pre-set beforehand: in many applications such semantic clustering of words these are very hard to guess in advance.</p>
+    <p>In a recent project, I needed to arrange around a thousand words into semantic clusters. For this problem, the <a href="https://en.wikipedia.org/wiki/Vector_space_model">Vector Space Model</a> seems well-suited. Previous research has released word vectors already trained on large text collections using methods like <a href="https://en.wikipedia.org/wiki/Word2vec">word2vec</a> or <a href="https://nlp.stanford.edu/projects/glove/">GloVe</a>. These vectors can be used to produce a similarity matrix, which can then be used for word clustering.</p>
+<p>The first step is to obtain the word vectors, e.g. using the gensim library's downloader tool:</p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">gensim.downloader</span> <span class="kn">as</span> <span class="nn">api</span>
+
+<span class="n">vectors</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;glove-wiki-gigaword-100&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Assuming the words one wants to cluster are in <code>words</code>, keep only relevant word vectors:</p>
+<div class="highlight"><pre><span></span><span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vectors</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">words</span><span class="p">])</span>
+</pre></div>
+
+
+<p>The next step is the choice of a clustering algorithm. While there are a few popular ones like K-means and DBSCAN, <a href="https://www.semanticscholar.org/paper/Document-Categorization-with-MAJORCLUST-Stein-Eissen/2380d838f03d0564631475904dc61e4c077a2997">Majorclust</a> is somewhat less known, but has an important advantage: it does not require stopping criteria like the number of clusters, the number of elements in a cluster, or the maximum distance between elements within a cluster, to be pre-set in advance: in many applications such as word clustering these are very hard to guess, even through lots of experimentation.</p>
 <p>The algorithm is described in <a href="https://www.semanticscholar.org/paper/Document-Categorization-with-MAJORCLUST-Stein-Eissen/2380d838f03d0564631475904dc61e4c077a2997">(Stein and Meyer zu Essen, 2002)</a> in application to document clustering (see p.4 for pseudocode and explanation). Below is its Python implementation taken from <a href="https://gist.github.com/baali/7983261">here</a> (<code>cosine_matrix</code> is a pre-computed matrix of document similarities):</p>
 <div class="highlight"><pre><span></span><span class="c1"># first assign each document to its own cluster</span>
 <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_of_samples</span><span class="p">)</span>
@@ -84,10 +98,64 @@
 </pre></div>
 
 
-<p>In brief, the algorithm begins by assigning every document to its own cluster. At each iteration, each document gets assigned to the cluster, to which it has the biggest similarity. A document's similarity to a cluster is calculated as the sum of the document's cosine similarities to each of the cluster's members. Thus a document can be re-clustered to other clusters at later iterations. Clustering stops when no document changes its cluster.</p>
-<p>However I found that two modifications to this algorithm are necessary in my case. First, if many elements in the matrix have non-zero similarities to many other elements (e.g., documents in the collection contain a lot of overlapping vocabulary, or word vectors have lots of non-zero values in the same columns, as is the case with the word2vec model), then MajorClust will end up putting all elements into one single cluster. Therefore, it was necessary to introduce a threshold below which similarities get cancelled out, i.e. set to 0. After some experimentation I found that a good threshold is 0.99, i.e. only similarities higher that value were kept.</p>
-<p>Second, after cancelling out low similarities, there will be many elements with no similarity to any other element. I.e., they should either constitute a cluster of its own or be treated as noise. MajorClust will happily merge two elements together even if the similarity between them is 0, thus producing one large catch-all cluster with lots of unrelated words. So the other modification is to prevent assigning an element to a cluster if its similarity equals zero.</p>
-<p>With these two modifications, MajorClust came up with quite reasonable clusters like:</p>
+<p>In brief, the algorithm begins by assigning every document to its own cluster. At each iteration, each document gets assigned to the cluster, to which it has the biggest similarity. A document's similarity to a cluster is calculated as the sum of the document's cosine similarities to each of the cluster's members. Thus, a document can be re-clustered to other clusters at later iterations. Clustering stops when no document changes its cluster.</p>
+<p>However I found that two modifications to this algorithm are necessary in my case. First, if many elements in the matrix have non-zero similarities to many other elements (e.g., word vectors have lots of non-zero values in the same columns, as is the case with word2vec vectors), then MajorClust may end up putting all elements into one single cluster. Therefore, it was necessary to introduce a threshold below which similarities get cancelled out, i.e. set to 0. After some experimentation I found that good results can be achieved by removing up to 99% of the smallest similarity pairs.</p>
+<p>Second, after cancelling out low similarities, there will be many elements with no similarity to any other element. I.e., they should either constitute a cluster of its own or be treated as noise. MajorClust will merge two elements together even if the similarity between them is 0, thus producing one large catch-all cluster with lots of unrelated words. So the other modification is to prevent assigning an element to a cluster if its similarity equals zero.</p>
+<p>The implementation below requires that all similarity values are equal or greater than 0, so first the features in the vectors need to be scaled to a range, e.g. (0, 1):</p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">minmax_scale</span>
+
+<span class="n">vectors</span> <span class="o">=</span> <span class="n">minmax_scale</span><span class="p">(</span><span class="n">word_vectors</span><span class="p">)</span>
+</pre></div>
+
+
+<p>A similarity matrix can now be produced:</p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.metrics.pairwise</span> <span class="kn">import</span> <span class="n">cosine_similarity</span>
+
+<span class="k">def</span> <span class="nf">get_sim_matrix</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.9</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Output pairwise cosine similarities in X. Cancel out the bottom</span>
+<span class="sd">    `threshold` percent of the pairs sorted by similarity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sim_matrix</span> <span class="o">=</span> <span class="n">cosine_similarity</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">sim_matrix</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+    <span class="n">sorted_sims</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">sim_matrix</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+    <span class="n">thr_val</span> <span class="o">=</span> <span class="n">sorted_sims</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">sorted_sims</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">threshold</span><span class="p">)]</span>
+    <span class="n">sim_matrix</span><span class="p">[</span><span class="n">sim_matrix</span> <span class="o">&lt;</span> <span class="n">thr_val</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">return</span> <span class="n">sim_matrix</span>
+
+<span class="n">sim_matrix</span> <span class="o">=</span> <span class="n">get_sim_matrix</span><span class="p">(</span><span class="n">vectors</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">)</span>
+</pre></div>
+
+
+<p>The <code>threshold</code> parameter in the function represents the bottom percent of pairs to be cancelled out, after sorting the pairs by the cosine measure.</p>
+<p>Now run Majorclust on the similarity matrix:</p>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">majorclust</span><span class="p">(</span><span class="n">sim_matrix</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Actual MajorClust algorithm</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">sim_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">t</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">sim_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="c1"># check if all the sims of the word are not zeros</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">sim_matrix</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">weights</span><span class="p">[</span><span class="n">weights</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="c1"># aggregating edge weights</span>
+            <span class="n">new_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">indices</span><span class="p">[</span><span class="n">new_index</span><span class="p">]</span> <span class="o">!=</span> <span class="n">indices</span><span class="p">[</span><span class="n">index</span><span class="p">]:</span>
+                <span class="n">indices</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span><span class="n">new_index</span><span class="p">]</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="k">return</span> <span class="n">indices</span>
+
+<span class="n">labels</span> <span class="o">=</span> <span class="n">majorclust</span><span class="p">(</span><span class="n">sim_matrix</span><span class="p">)</span>
+<span class="n">word2clusters</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">words</span><span class="p">,</span> <span class="n">labels</span><span class="p">))</span>
+</pre></div>
+
+
+<p>The clustering result is <code>word2clusters</code>, a dictionary with words and their cluster ids.</p>
+<p>With the modifications above, MajorClust came up with quite reasonable clusters like:</p>
 <ul>
 <li>
 <p><em>car, vehicle, bike, truck, drive, driver, bus, helmet, cycle, motorcycle, pickup</em></p>
