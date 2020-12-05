@@ -68,7 +68,7 @@
     <p>The Pesaran-Timmermann (1992) test is a non-parametric test that determines whether a forecast predicts the change in direction of a time series correctly. That is, the test looks at the directional accuracy of the forecast, rather than the actual forecasted amount. As such, it is particularly suited to evaluate the accuracy of forecasts of economic values, such as returns on investments, where forecasted values can be positive as well as negative.</p>
 <p>The Python function below calculates the Directional Accuracy Score, as well as Pesaran-Timmermann statistic and its p-value.</p>
 <p>The null hypothesis of the PT test is that the signs in predicted values are independent of those of true values.</p>
-<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">scipy.stats</span> <span class="k">as</span> <span class="nn">stats</span>
 
 
@@ -96,8 +96,7 @@
     <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">14</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">56</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">11</span><span class="p">,</span> <span class="o">-</span><span class="mi">34</span><span class="p">,</span> <span class="mi">29</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">11</span><span class="p">,</span> <span class="o">-</span><span class="mi">12</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
     <span class="n">dac</span><span class="p">,</span> <span class="n">pt</span><span class="p">,</span> <span class="n">pval</span> <span class="o">=</span> <span class="n">pttest</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Directional Accuracy: </span><span class="si">{</span><span class="n">dac</span><span class="si">}</span><span class="s2">, PT stat: </span><span class="si">{</span><span class="n">pt</span><span class="si">}</span><span class="s2">, p-value: </span><span class="si">{</span><span class="n">pval</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>This code is on <a href="https://gist.github.com/vpekar/df58ac8f07ec9d4ef24bcf1c176812b0">github</a>.</p>
 <p>An R implementation of the PT test is available in the <code>rugarch</code> <a href="https://cran.r-project.org/web/packages/rugarch/rugarch.pdf">package</a>.</p>
@@ -188,6 +187,10 @@
             <li>
               <a href="https://dblp.uni-trier.de/pers/hd/p/Pekar_0001:Viktor" target="_blank" title="dblp">
                 <i class="ai ai-dblp-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.semanticscholar.org/author/Viktor-Pekar/32284161" target="_blank" title="semanticscholar">
               </a>
             </li>
             <li>
