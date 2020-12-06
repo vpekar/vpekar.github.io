@@ -74,12 +74,12 @@
 <span class="n">vectors</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;glove-wiki-gigaword-100&quot;</span><span class="p">)</span>
 </code></pre></div>
 
-<p>Assuming the words one wants to cluster are in <code>words</code>, keep only relevant word vectors:</p>
+<p>Assuming the words one wants to cluster are in <em>words</em>, keep only relevant word vectors:</p>
 <div class="highlight"><pre><span></span><code><span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vectors</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">words</span><span class="p">])</span>
 </code></pre></div>
 
 <p>The next step is the choice of a clustering algorithm. While there are a few popular ones like K-means and DBSCAN, <a href="https://www.semanticscholar.org/paper/Document-Categorization-with-MAJORCLUST-Stein-Eissen/2380d838f03d0564631475904dc61e4c077a2997">Majorclust</a> is somewhat less known, but has an important advantage: it does not require stopping criteria like the number of clusters, the number of elements in a cluster, or the maximum distance between elements within a cluster, to be pre-set in advance: in many NLP tasks such as word clustering these are very hard to guess, even through lots of experimentation.</p>
-<p>The algorithm is described in <a href="https://www.semanticscholar.org/paper/Document-Categorization-with-MAJORCLUST-Stein-Eissen/2380d838f03d0564631475904dc61e4c077a2997">(Stein and Meyer zu Essen, 2002)</a> in application to document clustering (see p.4 for pseudocode and explanation). Below is its Python implementation taken from <a href="https://gist.github.com/baali/7983261">here</a> (<code>cosine_matrix</code> is a pre-computed matrix of document similarities):</p>
+<p>The algorithm is described in <a href="https://www.semanticscholar.org/paper/Document-Categorization-with-MAJORCLUST-Stein-Eissen/2380d838f03d0564631475904dc61e4c077a2997">(Stein and Meyer zu Essen, 2002)</a> in application to document clustering (see p.4 for pseudocode and explanation). Below is its Python implementation taken from <a href="https://gist.github.com/baali/7983261">here</a> (<em>cosine_matrix</em> is a pre-computed matrix of document similarities):</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># first assign each document to its own cluster</span>
 <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_of_samples</span><span class="p">)</span>
 <span class="n">t</span> <span class="o">=</span> <span class="kc">False</span>
@@ -123,7 +123,7 @@
 <span class="n">sim_matrix</span> <span class="o">=</span> <span class="n">get_sim_matrix</span><span class="p">(</span><span class="n">vectors</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">)</span>
 </code></pre></div>
 
-<p>The <code>threshold</code> parameter in the function represents the bottom percent of pairs to be cancelled out, after sorting the pairs by the cosine measure.</p>
+<p>The <em>threshold</em> parameter in the function represents the bottom percent of pairs to be cancelled out, after sorting the pairs by the cosine measure.</p>
 <p>Now run Majorclust on the similarity matrix:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">majorclust</span><span class="p">(</span><span class="n">sim_matrix</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Actual MajorClust algorithm</span>
@@ -148,7 +148,7 @@
 <span class="n">word2clusters</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">words</span><span class="p">,</span> <span class="n">labels</span><span class="p">))</span>
 </code></pre></div>
 
-<p>The clustering result is <code>word2clusters</code>, a dictionary with words and their cluster ids.</p>
+<p>The clustering result is <em>word2clusters</em>, a dictionary with words and their cluster ids.</p>
 <p>With the modifications above, MajorClust came up with quite reasonable clusters like:</p>
 <ul>
 <li>
