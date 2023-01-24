@@ -65,11 +65,13 @@
       <a href="https://vpekar.github.io/tag/python.html">#Python</a>,      <a href="https://vpekar.github.io/tag/ordinal-classification.html">#Ordinal Classification</a>    </p>
   </div>
   <div class="article__text">
-    <p>Ordinal classification, also known as ordinal regression, is a predictive modelling problem where the target variable is ordinal. Examples are star ratings in product reviews, Net Promoter Scores, or any other judgements or preferences that survey respondents express by picking a value on a scale containing a small set of ordered discrete numbers.</p>
-<p>The problem can be approached either as a regression or a classification task, but evaluation measures commonly used for ordinal classification are error rates such as Mean Absolute Error, because they - in contrast to classification evaluation measures such as F-score - apply smaller penalties for misclassifications into adjacent classes (e.g. confusing "4 star" and "5 star") than into classes on the opposite ends of the scale (e.g., confusing "1 star" and "5 star").</p>
-<p>However, these evaluation measures have an important drawback when used on datasets with highly imbalanced classes. The problem is that a majority classifier will achieve misleadingly low error rates, similar to the micro-averaged F score, which is misleadingly high in imbalanced data. If such an evaluation measure is used for model selection, a majority classifier will often be preferred over classifiers that are able to distinguish between non-majority classes.</p>
-<p>Baccianella et al. (<a href="https://doi.org/10.1109/ISDA.2009.230">2009</a>) proposed macro-averaged versions of the error rates, to be used for evaluation of ordinal classifiers. The evaluation measures are robust against to class imbalance.</p>
-<p>The Python functions below calculates the macroaveraged MAE and macroaveraged RMSE rates.</p>
+    <h2>Ordinal classification</h2>
+<p>Ordinal classification, also known as ordinal regression, is a predictive modelling problem where the target variable is ordinal. Examples are star ratings in product reviews, Net Promoter Scores, or any other judgements that survey respondents express by picking a value on a scale containing a small set of ordered discrete numbers.</p>
+<p>The problem can be approached either as a regression or a classification task, but evaluation measures commonly used for ordinal classification are error rates such as RMSE and MAE, because they - in contrast to classification evaluation measures such as F-score - apply smaller penalties for misclassifications into adjacent classes (e.g. confusing "4 star" and "5 star") than into classes on the opposite ends of the scale (e.g., confusing "1 star" and "5 star").</p>
+<h2>The problem with imbalanced classes</h2>
+<p>However, RMSE and MAE have an important drawback when used on datasets with highly imbalanced classes. The problem is that a trivial majority classifier will achieve misleadingly low error rates, similar to the micro-averaged F score, which will be misleadingly high on imbalanced data. If such an evaluation measure is used for model selection, a majority classifier will often be preferred over classifiers that are able to distinguish between non-majority classes.</p>
+<p><a href="https://doi.org/10.1109/ISDA.2009.230">Baccianella et al. (2009)</a> proposed macro-averaged versions of RMSE and MAE, to be used for evaluation of ordinal classifiers. The evaluation measures are robust against to class imbalance.</p>
+<p>The Python functions below calculate the macroaveraged MAE and macroaveraged RMSE rates.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 
@@ -86,14 +88,16 @@
     <span class="sd">&quot;&quot;&quot;Macroaveraged MAE</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">labels</span><span class="p">,</span> <span class="n">preds</span> <span class="o">=</span> <span class="n">groupby_labels</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">yhat</span><span class="p">)</span>
-    <span class="n">mean_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">label</span> <span class="o">-</span> <span class="n">pred</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">pred</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">preds</span><span class="p">)])</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">mean_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">label</span> <span class="o">-</span> <span class="n">pred</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> 
+                            <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">pred</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">preds</span><span class="p">)])</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">mean_diff</span>
 
 <span class="k">def</span> <span class="nf">rmse_macro</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">yhat</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Macroaveraged RMSE</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">labels</span><span class="p">,</span> <span class="n">preds</span> <span class="o">=</span> <span class="n">groupby_labels</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">yhat</span><span class="p">)</span>
-    <span class="n">mean_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">label</span> <span class="o">-</span> <span class="n">pred</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">pred</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">preds</span><span class="p">)])</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">mean_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">label</span> <span class="o">-</span> <span class="n">pred</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> 
+                            <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">pred</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">preds</span><span class="p">)])</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mean_diff</span><span class="p">)</span>
 
 
@@ -107,7 +111,48 @@
 </code></pre></div>
 
 <p>This code is on <a href="https://gist.github.com/vpekar/a9eee5fe8b8c3e35b03ae309d0d8c984">github</a>.</p>
-<h1>Reference</h1>
+<h2>Example</h2>
+<p>Here is an example comparing RMSE and MAE to their macroaveraged versions. The left plot is a confusion matrix for an ordinal classifier trained on imbalanced data. As one can see, it behaves a lot like a majority classifier: it tends to assign test instances of all the classes to "5", the majority class. The confusion matrix on the right is for an ordinal classifier trained on the same data after SMOTE oversampling. There are much fewer misclassifications of "1", "2", and "3" instances into the "5" class; the percentages close to the diagonal are greater than in the left plot.</p>
+<table>
+  <tr>
+  <td><img src="./images/macro_error_rate1.png" /></td>
+  <td><img src="./images/macro_error_rate2.png" /></td>
+  </tr>
+ </table>
+
+<p>A robust evaluation measure should account for the fact that the second classifier misclassified fewer test instances of non-majority classes than the first classifier.</p>
+<p>The table below compares four evaluation measures for these two classifiers.</p>
+<table style="margin-left:auto;margin-right:auto;padding:2px;border-spacing:10px;">
+  <tr>
+      <td></td>
+      <td>Unbalanced</td>
+      <td>Balanced</td>
+  </tr>
+  <tr>
+      <td>RMSE</td>
+      <td>1.67</td>
+      <td>1.66</td>
+  </tr>
+  <tr>
+      <td>Macro RMSE&nbsp;&nbsp;&nbsp;</td>
+      <td>1.6</td>
+      <td>1.3</td>
+  </tr>
+  <tr>
+      <td>MAE</td>
+      <td>0.78</td>
+      <td>0.9</td>
+  </tr>
+  <tr>
+      <td>Macro MAE&nbsp;&nbsp;&nbsp;</td>
+      <td>1.09</td>
+      <td>0.89</td>
+  </tr>
+ </table>
+
+<p>The RMSE rates suggest that there is no difference in the qualify between the two classifers, while according to MAE, the classifier trained on unbalanced data is actually more accurate. </p>
+<p>Both the macroaveraged rates, on the other hand, are lower for the classifier trained on balanced data, suggesting it should clearly be preferred.</p>
+<h2>Reference</h2>
 <p>S. Baccianella, A. Esuli and F. Sebastiani. (2009). "Evaluation Measures for Ordinal Regression," 2009 Ninth International Conference on Intelligent Systems Design and Applications, Pisa, Italy, pp. 283-287, doi: <a href="https://doi.org/10.1109/ISDA.2009.230">10.1109/ISDA.2009.230</a>.</p>
   </div>
 <section class="social-tools">
