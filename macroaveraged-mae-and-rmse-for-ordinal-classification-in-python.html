@@ -76,7 +76,7 @@
 
 
 <span class="k">def</span> <span class="nf">groupby_labels</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">yhat</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Based on https://stackoverflow.com/questions/38013778/is-there-any-numpy-group-by-function</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Based on https://stackoverflow.com/questions/38013778/is-there-any-numpy-group-by-function</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">y</span><span class="p">,</span> <span class="n">yhat</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
     <span class="n">m</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="n">m</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">argsort</span><span class="p">()]</span>
@@ -85,7 +85,7 @@
     <span class="k">return</span> <span class="n">labels</span><span class="p">,</span> <span class="n">grouped_preds</span>
 
 <span class="k">def</span> <span class="nf">mae_macro</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">yhat</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Macroaveraged MAE</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Macroaveraged MAE</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">labels</span><span class="p">,</span> <span class="n">preds</span> <span class="o">=</span> <span class="n">groupby_labels</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">yhat</span><span class="p">)</span>
     <span class="n">mean_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">label</span> <span class="o">-</span> <span class="n">pred</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> 
@@ -93,7 +93,7 @@
     <span class="k">return</span> <span class="n">mean_diff</span>
 
 <span class="k">def</span> <span class="nf">rmse_macro</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">yhat</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Macroaveraged RMSE</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Macroaveraged RMSE</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">labels</span><span class="p">,</span> <span class="n">preds</span> <span class="o">=</span> <span class="n">groupby_labels</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">yhat</span><span class="p">)</span>
     <span class="n">mean_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">label</span> <span class="o">-</span> <span class="n">pred</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> 
