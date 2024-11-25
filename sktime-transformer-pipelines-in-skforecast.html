@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- ## for client-side less
+  <link rel="stylesheet/less" type="text/css" href="https://vpekar.github.io/theme/css/style.less">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js" type="text/javascript"></script>
+  -->
+  <link rel="icon" type="image/vnd.microsoft.icon" href="https://vpekar.github.io/images/gs.png">
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/normalize.css">
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/style.min.css">
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/pygments.css">
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Roboto+Mono">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://vpekar.github.io/extras/academicons-1.8.6/css/academicons.css"/>
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/hatena-bookmark-icon.css">
+  <link rel="stylesheet" type="text/css" href="/static/custom.css">
+
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Viktor Pekar">
+  <meta name="description" content="Posts and writings by Viktor Pekar">
+
+  <link href="https://vpekar.github.io/feed/all.rss.xml" type="application/rss+xml" rel="alternate" title="Viktor Pekar RSS" />
+
+<meta name="keywords" content="Python, Time Series, Forecasting, SHAP">
+
+  <title>
+    Viktor Pekar
+&ndash; Sktime transformer pipelines in Skforecast  </title>
+
+</head>
+
+<body>
+  <main>
+    <header>
+      <div class="site-name">
+        <a href="https://vpekar.github.io">Viktor Pekar</a>
+      </div>
+      <p>
+
+      <a href="https://vpekar.github.io/pages/about.html">About</a> |
+      <a href="https://vpekar.github.io/pages/research.html">Research</a> |
+      <a href="https://vpekar.github.io/pages/teaching.html">Teaching</a> |
+      <!--<a href="https://vpekar.github.io/pages/consultancy.html">Consulting</a> | -->
+      <a href="https://vpekar.github.io/index.html">Blog</a> |
+      <a href="https://vpekar.github.io/tags.html">Tags</a> |
+      <a href="https://vpekar.github.io/pages/contact.html">Contact</a>
+
+      <!--
+        <a href="https://vpekar.github.io/archives.html">Archive</a>
+    -->
+
+      </p>
+    </header>
+
+<article>
+  <div class="article__title">
+    <h1>Sktime transformer pipelines in Skforecast</h1>
+  </div>
+  <div class="article__meta">
+    <p class="article__meta__post-date">Posted on: Tue 25 November 2025</p>
+ Tags:
+      <a href="https://vpekar.github.io/tag/python.html">#Python</a>,      <a href="https://vpekar.github.io/tag/time-series.html">#Time Series</a>,      <a href="https://vpekar.github.io/tag/forecasting.html">#Forecasting</a>,      <a href="https://vpekar.github.io/tag/shap.html">#SHAP</a>    </p>
+  </div>
+  <div class="article__text">
+    <h2>Ordinal classification</h2>
+<p>When it comes to preprocessing time series, there are usually many options to consider, e.g. either the target series or exogenous variables, or both, can be seasonally adjusted, detrended, differenced, scaled, stripped of outliers, etc. The right choice of preprocessing steps is hard to make based on visual inspection of the data and/or statistical tests run on individual series. An appealing possibility is to integrate the preprocessing steps into one pipeline with the forecasting method, and optimise the choice of preprocessing steps simultaneously with hyperparameter tuning of the main model, for example, using  a Bayesian Search optimiser. As the optimisation is done based on an certain performance metric, such pipeline components get eventually selected that result in the best model performance.</p>
+<p><a href="https://skforecast.org/">Skforecast</a> is an excellent Python package for time series forecasting: its API closely follows the API of <a href="https://scikit-learn.org/">Scikit-Learn</a>, and is easy to integrate with the rest of your project. It has excellent support for SHAP analysis, which is very useful if you were to gain insights into how your model works. However, at the moment skforecast does not implement any time series transformers, other than differencing.</p>
+<p><a href="https://www.sktime.net/">Sktime</a> is another popular package for working with time series, implements a much broader set of functionalities than Skforecast, including various time series transformers, but it does not support SHAP analysis.</p>
+<p>In the following, I will describe a fork of Skforecast that can use Sktime's transformers, combine them into a pipeline with the forecasting model, and optimise them in one step together with the HP tuning of the model.</p>
+<p>The fork contains two transformers, <code>StartSktimePipe</code> and <code>EndSktimePipe</code>, that make it possible for Sktime and Skforecast to pass data to each other. The transformers should be included into the start and end of Sktime's <code>TransformerPipeline</code> (the example uses two pipelines, one for the target variable and one for the predictors):</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">skforecast.utils</span> <span class="kn">import</span> <span class="n">StartSktimePipe</span><span class="p">,</span> <span class="n">EndSktimePipe</span>
+
+<span class="n">pipe_y</span> <span class="o">=</span> <span class="n">TransformerPipeline</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;startpipe_y&#39;</span><span class="p">,</span> <span class="n">StartSktimePipe</span><span class="p">()),</span>
+        <span class="p">(</span><span class="s2">&quot;deseasonalizer_y&quot;</span><span class="p">,</span> <span class="n">OptionalPassthrough</span><span class="p">(</span><span class="n">Deseasonalizer</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;additive&quot;</span><span class="p">,</span> <span class="n">sp</span><span class="o">=</span><span class="mi">52</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s2">&quot;detrender_y&quot;</span><span class="p">,</span> <span class="n">OptionalPassthrough</span><span class="p">(</span><span class="n">Detrender</span><span class="p">(</span><span class="n">forecaster</span><span class="o">=</span><span class="n">PolynomialTrendForecaster</span><span class="p">(</span><span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)))),</span>
+        <span class="p">(</span><span class="s2">&quot;boxcox_y&quot;</span><span class="p">,</span> <span class="n">OptionalPassthrough</span><span class="p">(</span><span class="n">BoxCoxTransformer</span><span class="p">())),</span>
+        <span class="p">(</span><span class="s1">&#39;differencer_y&#39;</span><span class="p">,</span> <span class="n">OptionalPassthrough</span><span class="p">(</span><span class="n">Differencer</span><span class="p">(</span><span class="n">na_handling</span><span class="o">=</span><span class="s2">&quot;fill_zero&quot;</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;endpipe_y&#39;</span><span class="p">,</span> <span class="n">EndSktimePipe</span><span class="p">()),</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+
+<span class="n">pipe_X</span> <span class="o">=</span> <span class="n">TransformerPipeline</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;startpipe_x&#39;</span><span class="p">,</span> <span class="n">StartSktimePipe</span><span class="p">()),</span>
+        <span class="p">(</span><span class="s2">&quot;deseasonalizer_x&quot;</span><span class="p">,</span> <span class="n">OptionalPassthrough</span><span class="p">(</span><span class="n">Deseasonalizer</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;additive&quot;</span><span class="p">,</span> <span class="n">sp</span><span class="o">=</span><span class="mi">52</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s2">&quot;detrender_x&quot;</span><span class="p">,</span> <span class="n">OptionalPassthrough</span><span class="p">(</span><span class="n">Detrender</span><span class="p">(</span><span class="n">forecaster</span><span class="o">=</span><span class="n">PolynomialTrendForecaster</span><span class="p">(</span><span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)))),</span>
+        <span class="p">(</span><span class="s2">&quot;boxcox_x&quot;</span><span class="p">,</span> <span class="n">OptionalPassthrough</span><span class="p">(</span><span class="n">BoxCoxTransformer</span><span class="p">())),</span>
+        <span class="p">(</span><span class="s1">&#39;differencer_x&#39;</span><span class="p">,</span> <span class="n">OptionalPassthrough</span><span class="p">(</span><span class="n">Differencer</span><span class="p">(</span><span class="n">na_handling</span><span class="o">=</span><span class="s2">&quot;fill_zero&quot;</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s2">&quot;scaler_x&quot;</span><span class="p">,</span> <span class="n">OptionalPassthrough</span><span class="p">(</span><span class="n">TabularToSeriesAdaptor</span><span class="p">(</span><span class="n">StandardScaler</span><span class="p">()))),</span>
+        <span class="p">(</span><span class="s1">&#39;endpipe_x&#39;</span><span class="p">,</span> <span class="n">EndSktimePipe</span><span class="p">())</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+</code></pre></div>
+
+<p>The Sktime transformers can be used with the wrapper <code>OptionalPassthrough</code>, which makes it possible to include and exclude the transformer during pipeline optimisation. Once set up, the pipelines can be included into <code>ForecasterRecursive</code>, as its <code>transformer_y</code> and <code>transformer_exog</code> arguments:</p>
+<div class="highlight"><pre><span></span><code><span class="n">forecaster_all_features</span> <span class="o">=</span> <span class="n">ForecasterRecursive</span><span class="p">(</span>
+    <span class="n">regressor</span><span class="o">=</span><span class="n">DecisionTreeRegressor</span><span class="p">(),</span>
+    <span class="n">lags</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">transformer_y</span><span class="o">=</span><span class="n">pipe_y</span><span class="p">,</span>
+    <span class="n">transformer_exog</span><span class="o">=</span><span class="n">pipe_X</span><span class="p">,</span>
+    <span class="n">window_features</span><span class="o">=</span><span class="n">RollingFeatures</span><span class="p">(</span>
+                      <span class="n">stats</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;std&#39;</span><span class="p">],</span>
+                      <span class="n">window_sizes</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+                  <span class="p">)</span>
+    <span class="p">)</span>
+</code></pre></div>
+
+<p>After that the Forecaster can be used inside an optimiser, e.g. Bayesian Search, that includes hyperparameter settings also for the forecasting model, e.g., a Decision Tree regressor, as well as different lag settings:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">search_space</span><span class="p">(</span><span class="n">trial</span><span class="p">):</span>
+    <span class="n">search_space</span>  <span class="o">=</span> <span class="p">{</span>
+
+        <span class="s1">&#39;lags&#39;</span><span class="p">:</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;lags&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">]),</span>
+
+        <span class="s1">&#39;estimator__max_depth&#39;</span><span class="p">:</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_int</span><span class="p">(</span><span class="s1">&#39;max_depth&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+        <span class="s1">&#39;estimator__min_samples_leaf&#39;</span><span class="p">:</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_int</span><span class="p">(</span><span class="s1">&#39;min_samples_leaf&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">15</span><span class="p">),</span>
+        <span class="s1">&#39;estimator__max_features&#39;</span><span class="p">:</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;max_features&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;sqrt&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]),</span>
+
+        <span class="s1">&#39;transformer_y__differencer_y__passthrough&#39;</span><span class="p">:</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;differencer_y__passthrough&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s1">&#39;transformer_y__deseasonalizer_y__passthrough&#39;</span><span class="p">:</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;deseasonalizer_y__passthrough&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s1">&#39;transformer_y__boxcox_y__passthrough&#39;</span><span class="p">:</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;boxcox_y__passthrough&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s1">&#39;transformer_y__detrender_y__passthrough&#39;</span><span class="p">:</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;detrender_y__passthrough&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s1">&#39;transformer_y__detrender_y__transformer__forecaster__degree&#39;</span><span class="p">:</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;detrender_y__transformer__forecaster__degree&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+
+        <span class="s1">&#39;transformer_exog__differencer_x__passthrough&#39;</span><span class="p">:</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;differencer_x__passthrough&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s1">&#39;transformer_exog__deseasonalizer_x__passthrough&#39;</span><span class="p">:</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;deseasonalizer_x__passthrough&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s1">&#39;transformer_exog__boxcox_x__passthrough&#39;</span><span class="p">:</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;boxcox_x__passthrough&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s1">&#39;transformer_exog__detrender_x__passthrough&#39;</span><span class="p">:</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;detrender_x__passthrough&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]),</span>
+        <span class="s1">&#39;transformer_exog__detrender_x__transformer__forecaster__degree&#39;</span><span class="p">:</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s1">&#39;detrender_x__transformer__forecaster__degree&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">search_space</span>
+</code></pre></div>
+
+<p>Note the HPs of the forecaster should be prefixed with "estimator__", the parameters of the transformers with "transformer_y" and "transformer_exog".</p>
+<p>Once run, the optimiser will find the best combination of the settings for the forecasting model, lags as well as both transformer pipelines:</p>
+<p><img src="./images/skf_sktime.png" /></p>
+<p>The Skforecast fork can be found <a href="https://github.com/vpekar/skforecast">here</a>. The notebook with a complete example can be viewed <a href="https://gist.github.com/vpekar/51921bb3e6be75afd2c8666a9f1ff250">here</a>.</p>
+  </div>
+<section class="social-tools">
+
+    <div class="social-tools__title">
+      <p>Share this post</p>
+    </div>
+
+    <div class="social-tools__buttons">
+      <a class="tweet-blogpost-button"
+         href="https://twitter.com/share?text=Viktor Pekar - Sktime transformer pipelines in Skforecast"
+         onClick="window.open(encodeURI(decodeURI(this.href)), 'tweetwindow', 'width=650, height=470'); return false;" >
+        <i class="fab fa-twitter"></i>
+      </a>
+
+      <a class="facebook-share-button"
+         href="https://www.facebook.com/sharer/sharer.php?u=https://vpekar.github.io/sktime-transformer-pipelines-in-skforecast.html"
+         onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;" >
+        <i class="fab fa-facebook"></i>
+      </a>
+
+      <a class="pocket-add-button"
+         href="http://www.tumblr.com/share/link?url=https://vpekar.github.io/sktime-transformer-pipelines-in-skforecast.html&title=Sktime transformer pipelines in Skforecast"
+         onclick="window.open(this.href, 'add-to-get-pocket', 'width=490,height=530');return false;"
+         title="add to tumblr" >
+        <i class="fab fa-tumblr"></i>
+      </a>
+
+      <a class="pocket-add-button"
+         href="https://getpocket.com/edit?url=https://vpekar.github.io/sktime-transformer-pipelines-in-skforecast.html&title=Sktime transformer pipelines in Skforecast"
+         onclick="window.open(this.href, 'add-to-get-pocket', 'width=490,height=530');return false;"
+         title="add to pocket" >
+        <i class="fab fa-get-pocket"></i>
+      </a>
+
+
+    </div>
+
+
+</section>
+</article>
+
+
+  </main>
+    <footer>
+      <!--
+      <div class="author__logo">
+          <img src="../images/fb.jpg" alt="logo">
+      </div>-->
+      <section class="author">
+        <!--<div class="author__name">
+          <a href="https://vpekar.github.io/pages/about.html">Viktor Pekar</a>
+          <p></p>
+        </div> -->
+        <div class="author__link">
+          <ul>
+            <li><a href="https://profile.codersrank.io/user/vpekar" title="codersrank"><i class="fas fa-link"></i></a></li>
+            <li><a href="https://www.scopus.com/authid/detail.uri?authorId=20434464100" title="scopus"><i class="fas fa-link"></i></a></li>
+            <li><a href="https://aclanthology.org/people/v/viktor-pekar/" title="aclanthology"><i class="fas fa-link"></i></a></li>
+            <li>
+              <a href="https://twitter.com/pekarv" target="_blank" title="twitter">
+                <i class="fab fa-twitter-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.linkedin.com/in/vpekar/" target="_blank" title="linkedin">
+                <i class="fab fa-linkedin"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://github.com/vpekar" target="_blank" title="github">
+                <i class="fab fa-github-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.researchgate.net/profile/Viktor_Pekar" target="_blank" title="researchgate">
+                <i class="fab fa-researchgate"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://scholar.google.co.uk/citations?user=wZg3myQAAAAJ&hl=en" target="_blank" title="googlescholar">
+                <i class="ai ai-google-scholar-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://dblp.uni-trier.de/pers/hd/p/Pekar_0001:Viktor" target="_blank" title="dblp">
+                <i class="ai ai-dblp-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.semanticscholar.org/author/Viktor-Pekar/32284161" target="_blank" title="semanticscholar">
+                <i class="ai ai-semantic-scholar-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://vpekar.github.io/feed/all.rss.xml" target="_blank" title="Feed">
+                <i class="fas fa-rss-square"></i>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+      <div class="ending-message">
+        <p>&copy; Viktor Pekar. Powered by <a href="http://getpelican.com" target="_blank">Pelican</a>, Theme is using <a href="https://github.com/laughk/pelican-hss" target="_blank">HSS</a>. </p>
+      </div>
+    </footer>
+    <!-- Default Statcounter code for Vpekar.github.io
+    http://vpekar.github.io/ -->
+    <script type="text/javascript">
+    var sc_project=11724865;
+    var sc_invisible=1;
+    var sc_security="f8dc32d7";
+    </script>
+    <script type="text/javascript"
+    src="https://www.statcounter.com/counter/counter.js"
+    async></script>
+    <noscript><div class="statcounter"><a title="hit counter"
+    href="http://statcounter.com/" target="_blank"><img
+    class="statcounter"
+    src="//c.statcounter.com/11724865/0/f8dc32d7/1/" alt="hit
+    counter"></a></div></noscript>
+<!-- End of Statcounter Code -->
+</body>
+</html>
