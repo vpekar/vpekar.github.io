@@ -66,10 +66,10 @@
   </div>
   <div class="article__text">
     <p>When it comes to preprocessing time series, there are usually many options to consider, e.g. either the target series or exogenous variables, or both, can be seasonally adjusted, detrended, differenced, scaled, stripped of outliers, etc. The right choice of preprocessing steps is hard to make based on visual inspection of the data and/or statistical tests run on individual series. An appealing possibility is to integrate the preprocessing steps into one pipeline with the forecasting method, and optimise the choice of preprocessing steps simultaneously with hyperparameter tuning of the main model, for example, using  a Bayesian Search optimiser. As the optimisation is done based on an certain performance metric, such pipeline components get eventually selected that result in the best model performance.</p>
-<p><a href="https://skforecast.org/">Skforecast</a> is an excellent Python package for time series forecasting: its API closely follows the API of <a href="https://scikit-learn.org/">Scikit-Learn</a>, and is easy to integrate with the rest of your project. It has excellent support for SHAP analysis, which is very useful if you were to gain insights into how your model works. However, at the moment skforecast does not implement any time series transformers, other than differencing.</p>
+<p><a href="https://skforecast.org/">Skforecast</a> is an excellent Python package for time series forecasting: its API closely follows that of <a href="https://scikit-learn.org/">Scikit-Learn</a>, and is easy to integrate with the rest of your project. It has excellent support for SHAP analysis, which is very useful if you were to gain insights into how your model works. However, at the moment Skforecast does not implement any time series transformers, other than differencing.</p>
 <p><a href="https://www.sktime.net/">Sktime</a> is another popular package for working with time series, implements a much broader set of functionalities than Skforecast, including various time series transformers, but it does not support SHAP analysis.</p>
 <p>In the following, I will describe a fork of Skforecast that can use Sktime's transformers, combine them into a pipeline with the forecasting model, and optimise them in one step together with the HP tuning of the model.</p>
-<p>The fork contains two transformers, <code>StartSktimePipe</code> and <code>EndSktimePipe</code>, that make it possible for Sktime and Skforecast to pass data to each other. The transformers should be included into the start and end of Sktime's <code>TransformerPipeline</code> (the example uses two pipelines, one for the target variable and one for the predictors):</p>
+<p>The fork contains two transformers, <code>StartSktimePipe</code> and <code>EndSktimePipe</code>, that make it possible for Sktime and Skforecast to pass data to each other. The transformers should be included into the start and end of Sktime's <code>TransformerPipeline</code> (the example below uses two pipelines, one for the target variable and one for the predictors):</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">skforecast.utils</span> <span class="kn">import</span> <span class="n">StartSktimePipe</span><span class="p">,</span> <span class="n">EndSktimePipe</span>
 
 <span class="n">pipe_y</span> <span class="o">=</span> <span class="n">TransformerPipeline</span><span class="p">(</span>
@@ -144,8 +144,8 @@
     <span class="k">return</span> <span class="n">search_space</span>
 </code></pre></div>
 
-<p>Note the HPs of the forecaster should be prefixed with "estimator__", the parameters of the transformers with "transformer_y" and "transformer_exog".</p>
-<p>Once run, the optimiser will find the best combination of the settings for the forecasting model (e.g., "max_features"), lags (first column) as well as both transformer pipelines (e.g., "detrender_y" and "detrender_x"):</p>
+<p>Note the HPs of the forecaster should be prefixed with "estimator__", the parameters of the transformers with "transformer_y__" and "transformer_exog__".</p>
+<p>Once run, the optimiser will find the best combination of the HP settings of the forecasting model (e.g., "max_features"), the number of lags (first column) as well as selected components of both transformer pipelines (e.g., "detrender_y" and "detrender_x"):</p>
 <p><img src="./images/skf_sktime.png" /></p>
 <p>The Skforecast fork can be found <a href="https://github.com/vpekar/skforecast">here</a>. The notebook with a complete example can be viewed <a href="https://gist.github.com/vpekar/51921bb3e6be75afd2c8666a9f1ff250">here</a>.</p>
   </div>
