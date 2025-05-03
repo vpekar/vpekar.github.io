@@ -24,10 +24,11 @@
 
   <link href="https://vpekar.github.io/feed/all.rss.xml" type="application/rss+xml" rel="alternate" title="Viktor Pekar RSS" />
 
+<meta name="keywords" content="Python, SublimeText">
 
   <title>
     Viktor Pekar
-&ndash; Tags  </title>
+&ndash; A SublimeText plugin for context-sensitive autocompletion suggestions  </title>
 
 </head>
 
@@ -55,18 +56,89 @@
     </header>
 
 <article>
-  <div class="article__text">
-    <ul>          <li><a href="https://vpekar.github.io/tag/clustering.html">Clustering</a> (1)</li>
-          <li><a href="https://vpekar.github.io/tag/forecasting.html">Forecasting</a> (1)</li>
-          <li><a href="https://vpekar.github.io/tag/majorclust.html">MajorClust</a> (1)</li>
-          <li><a href="https://vpekar.github.io/tag/ordinal-classification.html">Ordinal Classification</a> (1)</li>
-          <li><a href="https://vpekar.github.io/tag/python.html">Python</a> (5)</li>
-          <li><a href="https://vpekar.github.io/tag/shap.html">SHAP</a> (1)</li>
-          <li><a href="https://vpekar.github.io/tag/sublimetext.html">SublimeText</a> (1)</li>
-          <li><a href="https://vpekar.github.io/tag/time-series.html">Time Series</a> (2)</li>
-          <li><a href="https://vpekar.github.io/tag/word2vec.html">word2vec</a> (1)</li>
-    </ul>
+  <div class="article__title">
+    <h1>A SublimeText plugin for context-sensitive autocompletion suggestions</h1>
   </div>
+  <div class="article__meta">
+    <p class="article__meta__post-date">Posted on: Sat 03 May 2025</p>
+ Tags:
+      <a href="https://vpekar.github.io/tag/python.html">#Python</a>,      <a href="https://vpekar.github.io/tag/sublimetext.html">#SublimeText</a>    </p>
+  </div>
+  <div class="article__text">
+    <p>If you need to write free-text commentary to many similar documents - for example, marking students' papers, you probably often wished your previous comments could be re-used. After all, different students offer the same correct solutions and repeat the same mistakes that need to be pointed out in your feedback over and over.</p>
+<p>To save time on writing such feedback and to ensure its consistency, I've written a plugin for SublimeText, a free text editor. It works similar to an autocompletion function in an internet search engine: when you start typing a keyword, previously written comments with that keyword will appear in an autocompletion menu.</p>
+<p><img src="./images/marking-feedback-demo.gif" alt="demo" width="600"/></p>
+<p>The ST plugin has the following benefits over various similar tools:</p>
+<ul>
+<li>
+<p>Previously written comments can be re-used in a context-sensitive manner: if you are writing comments relative to a rubric (e.g., consisting of sections such as "Motivation", "Methodology", "Analysis", "Conclusions", etc), only those will be suggested that are relevant to the particular rubric section your cursor is currently in. For example, when commenting on the presentation style, only previous comments related to presentation will be suggested.</p>
+</li>
+<li>
+<p>The automatically inserted text can be immediately post-edited to personalise the feedback.</p>
+</li>
+<li>
+<p>SublimeText is a simple, non-intrusive editor that takes little space on the screen, so there is no need to switch between windows.</p>
+</li>
+<li>
+<p>One can create and maintain multiple custom repositories of reusable comments - for example, for different subjects and different assignments.</p>
+</li>
+<li>
+<p>It is free.</p>
+</li>
+</ul>
+<p>To install the plugin:</p>
+<p>(1) Install <a href="https://www.sublimetext.com/download">Sublime Text</a>.</p>
+<p>(2) Download the plugin from <a href="https://github.com/vpekar/marking-feedback">github</a>: it includes two files, <code>MarkingFeedback.py</code> and <code>MarkingFeedback.sublime-settings</code>.</p>
+<p>(3) In SublimeText, select "Preferences" -&gt; "Browser packages..." -&gt; "User" and paste the two files into the User folder. Restart Sublime Text.</p>
+<p>(4) Create a repository of comments you previously wrote: This should be a plain-text file, where the name of the rubric section appears on a separate line and is preceded with a "#", and past comments relating to this section appear below, one per line. See the example file included with the plugin. Save the file anywhere on your computer, e.g., under <code>C:\Users\&lt;username&gt;\comments_repository.txt</code>.</p>
+<p>(5) In "MarkingFeedback.sublime-settings", specify the location of the file under "repository_path":</p>
+<div class="highlight"><pre><span></span><code>{
+    &quot;repository_path&quot;: &quot;C:\Users\&lt;username&gt;\comments_repository.txt&quot;
+}
+</code></pre></div>
+
+<p>To use the plugin:</p>
+<p>(1) In a new plain-text document in ST, create the same marking rubric as in the comments repository file, where each section appears on a separate line, preceded by "#".</p>
+<p>(2) Within a particular section, start typing a keyword and hit "tab" to bring up a context menu. Use the arrow keys + Enter to select a suggested comment.</p>
+  </div>
+<section class="social-tools">
+
+    <div class="social-tools__title">
+      <p>Share this post</p>
+    </div>
+
+    <div class="social-tools__buttons">
+      <a class="tweet-blogpost-button"
+         href="https://twitter.com/share?text=Viktor Pekar - A SublimeText plugin for context-sensitive autocompletion suggestions"
+         onClick="window.open(encodeURI(decodeURI(this.href)), 'tweetwindow', 'width=650, height=470'); return false;" >
+        <i class="fab fa-twitter"></i>
+      </a>
+
+      <a class="facebook-share-button"
+         href="https://www.facebook.com/sharer/sharer.php?u=https://vpekar.github.io/a-sublimetext-plugin-for-context-sensitive-autocompletion-suggestions.html"
+         onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;" >
+        <i class="fab fa-facebook"></i>
+      </a>
+
+      <a class="pocket-add-button"
+         href="http://www.tumblr.com/share/link?url=https://vpekar.github.io/a-sublimetext-plugin-for-context-sensitive-autocompletion-suggestions.html&title=A SublimeText plugin for context-sensitive autocompletion suggestions"
+         onclick="window.open(this.href, 'add-to-get-pocket', 'width=490,height=530');return false;"
+         title="add to tumblr" >
+        <i class="fab fa-tumblr"></i>
+      </a>
+
+      <a class="pocket-add-button"
+         href="https://getpocket.com/edit?url=https://vpekar.github.io/a-sublimetext-plugin-for-context-sensitive-autocompletion-suggestions.html&title=A SublimeText plugin for context-sensitive autocompletion suggestions"
+         onclick="window.open(this.href, 'add-to-get-pocket', 'width=490,height=530');return false;"
+         title="add to pocket" >
+        <i class="fab fa-get-pocket"></i>
+      </a>
+
+
+    </div>
+
+
+</section>
 </article>
 
 
