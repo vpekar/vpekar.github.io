@@ -120,13 +120,13 @@
   </tr>
  </table>
 
-<p>A robust evaluation measure should account for the fact that the second classifier misclassified fewer test instances of non-majority classes than the first classifier.</p>
+<p>A robust evaluation measure should account for the fact that the second classifier misclassified fewer test instances of non-majority classes than the first classifier, i.e. recognise that the second classifier produced fewer errors.</p>
 <p>The table below compares four evaluation measures for these two classifiers.</p>
 <table style="margin-left:auto;margin-right:auto;padding:2px;border-spacing:10px;">
   <tr>
       <td></td>
-      <td>Unbalanced</td>
-      <td>Balanced</td>
+      <td>Unbalanced classifier</td>
+      <td>Balanced classifier</td>
   </tr>
   <tr>
       <td>RMSE</td>
@@ -151,7 +151,7 @@
  </table>
 
 <p>The RMSE rates suggest that there is no difference in the qualify between the two classifers, while according to MAE, the classifier trained on unbalanced data is actually more accurate. </p>
-<p>Both the macroaveraged rates, on the other hand, are lower for the classifier trained on balanced data, suggesting it should clearly be preferred.</p>
+<p>Both the macroaveraged RMSE and MAE rates, on the other hand, are lower for the classifier trained on balanced data, suggesting it should clearly be preferred.</p>
 <h2>Reference</h2>
 <p>S. Baccianella, A. Esuli and F. Sebastiani. (2009). "Evaluation Measures for Ordinal Regression," 2009 Ninth International Conference on Intelligent Systems Design and Applications, Pisa, Italy, pp. 283-287, doi: <a href="https://doi.org/10.1109/ISDA.2009.230">10.1109/ISDA.2009.230</a>.</p>
   </div>
