@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- ## for client-side less
+  <link rel="stylesheet/less" type="text/css" href="https://vpekar.github.io/theme/css/style.less">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js" type="text/javascript"></script>
+  -->
+  <link rel="icon" type="image/vnd.microsoft.icon" href="https://vpekar.github.io/images/gs.png">
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/normalize.css">
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/style.min.css">
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/pygments.css">
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Roboto+Mono">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://vpekar.github.io/extras/academicons-1.9.4/css/academicons.css"/>
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/hatena-bookmark-icon.css">
+  <link rel="stylesheet" type="text/css" href="/static/custom.css">
+
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Viktor Pekar">
+  <meta name="description" content="Posts and writings by Viktor Pekar">
+
+  <link href="https://vpekar.github.io/feed/all.rss.xml" type="application/rss+xml" rel="alternate" title="Viktor Pekar RSS" />
+
+<meta name="keywords" content="Python, NLP, Keyword Extraction, Term Extraction, LLM, sklearn">
+
+  <title>
+    Viktor Pekar
+&ndash; Accurate keyword extraction with customised KeyBERT  </title>
+
+</head>
+
+<body>
+  <main>
+    <header>
+      <div class="site-name">
+        <a href="https://vpekar.github.io">Viktor Pekar</a>
+      </div>
+      <p>
+
+      <a href="https://vpekar.github.io/pages/about.html">About</a> |
+      <a href="https://vpekar.github.io/pages/research.html">Research</a> |
+      <a href="https://vpekar.github.io/pages/teaching.html">Teaching</a> |
+      <!--<a href="https://vpekar.github.io/pages/consultancy.html">Consulting</a> | -->
+      <a href="https://vpekar.github.io/index.html">Blog</a> |
+      <a href="https://vpekar.github.io/tags.html">Tags</a> |
+      <a href="https://vpekar.github.io/pages/contact.html">Contact</a>
+
+      <!--
+        <a href="https://vpekar.github.io/archives.html">Archive</a>
+    -->
+
+      </p>
+    </header>
+
+<article>
+  <div class="article__title">
+    <h1>Accurate keyword extraction with customised KeyBERT</h1>
+  </div>
+  <div class="article__meta">
+    <p class="article__meta__post-date">Posted on: Fri 20 March 2026</p>
+ Tags:
+      <a href="https://vpekar.github.io/tag/python.html">#Python</a>,      <a href="https://vpekar.github.io/tag/nlp.html">#NLP</a>,      <a href="https://vpekar.github.io/tag/keyword-extraction.html">#Keyword Extraction</a>,      <a href="https://vpekar.github.io/tag/term-extraction.html">#Term Extraction</a>,      <a href="https://vpekar.github.io/tag/llm.html">#LLM</a>,      <a href="https://vpekar.github.io/tag/sklearn.html">#sklearn</a>    </p>
+  </div>
+  <div class="article__text">
+    <p><a href="https://github.com/MaartenGr/KeyBERT/tree/master/keybert">KeyBERT</a> is a keyword extaction tool that takes a very different approach to select the most important keywords in a document, compared to traditional scoring methods, such as <a href="https://en.wikipedia.org/wiki/Tf%E2%80%93idf">tfidf</a>. KeyBERT measures the importance of the keyword in the document as the cosine similarity between the representations of the document and the keyword, constructed using a pretrained language model. In this way KeyBERT aims to capture the relevance of the keyword to the meaning of the document, and at the same time removes the need for a large reference corpus.</p>
+<h1>The problem with CountVectorizer</h1>
+<p>However, in KeyBERT, <a href="https://scikit-learn.org/stable/">sklearn</a>'s <code>CountVectorizer</code> is used behind the scenes to extract tokens from which keywords are later created. The problem with CountVectorizer is that it is that uses a regular expression to extract alphanumeric tokens. It first generates a solid list of tokens from the whole document, ignoring sentence boundaries, and then it deletes stopwords from this list, destroying any grammatical relations between tokens. Keywords are then constructed from this token list. As a result, many consist of tokens which in the original text were separated by stopwords or punctuation symbols and even appeared in different sentences. See example below:</p>
+<div class="highlight"><pre><span></span><code>    <span class="kn">from</span> <span class="nn">sklearn.feature_extraction.text</span> <span class="kn">import</span> <span class="n">CountVectorizer</span>
+
+    <span class="n">doc</span> <span class="o">=</span> <span class="s1">&#39;This is the first document. This document is the second document.&#39;</span>
+
+    <span class="n">vectorizer</span> <span class="o">=</span> <span class="n">CountVectorizer</span><span class="p">(</span><span class="n">stop_words</span><span class="o">=</span><span class="s2">&quot;english&quot;</span><span class="p">,</span> <span class="n">ngram_range</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">vectorizer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">([</span><span class="n">doc</span><span class="p">])</span>
+    <span class="n">vectorizer</span><span class="o">.</span><span class="n">get_feature_names_out</span><span class="p">()</span>
+
+<span class="p">:::</span><span class="n">python</span>
+    <span class="n">array</span><span class="p">([</span><span class="s1">&#39;document document&#39;</span><span class="p">,</span> <span class="s1">&#39;document second&#39;</span><span class="p">,</span> <span class="s1">&#39;second document&#39;</span><span class="p">],</span>
+  <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+</code></pre></div>
+
+<p><code>CountVectorizer</code> first extracted all alphanumeric tokens using a regex from the whole document and then stripped stopwords from it. This produced a list of tokens: "document", "document", "second", "document". Three bigrams are then created from this list:</p>
+<p>(1) "document document", extracted from the last token of the first sentence and the first non-stopword from the second sentence.</p>
+<p>(2) "document second", extracted from "<em>... document is the second</em>", after deleting the stopwords "is" and "the".</p>
+<p>(3) "second document", the only meaningful word combination.</p>
+<p>Below is a customized <code>CountVectorizer</code> that respects sentence boundaries and grammatical relations between words, based on a proper NLP tokenization and PoS tagging function, such as one available in <a href="https://spacy.io/">SpaCy</a> or <a href="https://www.nltk.org/">NLTK</a>:</p>
+<div class="highlight"><pre><span></span><code>    <span class="kn">import</span> <span class="nn">importlib</span>
+    <span class="kn">import</span> <span class="nn">sklearn</span>
+    <span class="n">importlib</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">sklearn</span><span class="o">.</span><span class="n">feature_extraction</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+    <span class="kn">import</span> <span class="nn">spacy</span>
+
+    <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
+
+    <span class="n">spacy_nlp</span> <span class="o">=</span> <span class="n">spacy</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;en_core_web_sm&quot;</span><span class="p">,</span> <span class="n">disable</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;parser&quot;</span><span class="p">,</span> <span class="s2">&quot;ner&quot;</span><span class="p">])</span>
+
+
+    <span class="c1"># the original CountVectorizer&#39;s method to generate ngrams is stored in a global variable</span>
+    <span class="n">original_word_ngrams</span> <span class="o">=</span> <span class="n">CountVectorizer</span><span class="o">.</span><span class="n">_word_ngrams</span>
+
+    <span class="k">def</span> <span class="nf">get_token_sets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">stop_words</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">global</span> <span class="n">original_word_ngrams</span>
+        <span class="n">token_set</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">stop_words</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stop_words</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">pos_</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;NOUN&quot;</span><span class="p">,</span> <span class="s2">&quot;ADJ&quot;</span><span class="p">,</span> <span class="s2">&quot;PROPN&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">t</span><span class="o">.</span><span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">stop_words</span><span class="p">:</span>
+                <span class="n">token_set</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">original_word_ngrams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token_set</span><span class="p">,</span> <span class="n">stop_words</span><span class="p">)</span>
+                <span class="n">token_set</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">yield</span> <span class="n">original_word_ngrams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token_set</span><span class="p">,</span> <span class="n">stop_words</span><span class="p">)</span>
+
+    <span class="c1"># a custom method to generate ngrams is assigned to the  CountVectorizer class</span>
+    <span class="k">def</span> <span class="nf">_custom_word_ngrams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">stop_words</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">token_sets</span> <span class="o">=</span> <span class="n">get_token_sets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">stop_words</span><span class="o">=</span><span class="n">stop_words</span><span class="p">)</span>
+        <span class="n">tokens</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">(</span><span class="n">token_sets</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">tokens</span>
+
+    <span class="n">CountVectorizer</span><span class="o">.</span><span class="n">_word_ngrams</span> <span class="o">=</span> <span class="n">_custom_word_ngrams</span>
+
+<span class="p">:::</span><span class="n">python</span>
+    <span class="n">vectorizer</span> <span class="o">=</span> <span class="n">CountVectorizer</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">=</span><span class="n">spacy_nlp</span><span class="p">,</span> <span class="n">stop_words</span><span class="o">=</span><span class="s2">&quot;english&quot;</span><span class="p">,</span> <span class="n">ngram_range</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">vectorizer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">([</span><span class="n">doc</span><span class="p">])</span>
+    <span class="n">vectorizer</span><span class="o">.</span><span class="n">get_feature_names_out</span><span class="p">()</span>
+</code></pre></div>
+
+<p>Here, only "second document" is extracted from the same input text.</p>
+<h1>Customizing KeyBERT</h1>
+<p>Here is the effect of the default CountVectorizer within KeyBERT:</p>
+<div class="highlight"><pre><span></span><code>    <span class="kn">from</span> <span class="nn">keybert</span> <span class="kn">import</span> <span class="n">KeyBERT</span>
+
+
+    <span class="n">doc</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">             Supervised learning is the machine learning task of learning a function that</span>
+<span class="s2">             maps an input to an output based on example input-output pairs. It infers a</span>
+<span class="s2">             function from labeled training data consisting of a set of training examples.</span>
+<span class="s2">             In supervised learning, each example is a pair consisting of an input object</span>
+<span class="s2">             (typically a vector) and a desired output value (also called the supervisory signal).</span>
+<span class="s2">             A supervised learning algorithm analyzes the training data and produces an inferred function,</span>
+<span class="s2">             which can be used for mapping new examples. An optimal scenario will allow for the</span>
+<span class="s2">             algorithm to correctly determine the class labels for unseen instances. This requires</span>
+<span class="s2">             the learning algorithm to generalize from the training data to unseen situations in a</span>
+<span class="s2">             &#39;reasonable&#39; way (see inductive bias).</span>
+<span class="s2">          &quot;&quot;&quot;</span>
+    <span class="n">kw_model</span> <span class="o">=</span> <span class="n">KeyBERT</span><span class="p">()</span>
+    <span class="n">keywords</span> <span class="o">=</span> <span class="n">kw_model</span><span class="o">.</span><span class="n">extract_keywords</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">keyphrase_ngram_range</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">stop_words</span><span class="o">=</span><span class="s2">&quot;english&quot;</span><span class="p">,</span> <span class="n">top_n</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">keywords</span>
+
+<span class="p">:::</span><span class="n">python</span>
+    <span class="p">[(</span><span class="s1">&#39;supervised learning algorithm&#39;</span><span class="p">,</span> <span class="mf">0.6992</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;supervised learning example&#39;</span><span class="p">,</span> <span class="mf">0.6807</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;supervised learning&#39;</span><span class="p">,</span> <span class="mf">0.6779</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;supervised learning machine&#39;</span><span class="p">,</span> <span class="mf">0.6706</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;supervised&#39;</span><span class="p">,</span> <span class="mf">0.6676</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;function labeled training&#39;</span><span class="p">,</span> <span class="mf">0.663</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;training examples supervised&#39;</span><span class="p">,</span> <span class="mf">0.625</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;signal supervised&#39;</span><span class="p">,</span> <span class="mf">0.6152</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;labeled training data&#39;</span><span class="p">,</span> <span class="mf">0.6125</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;examples supervised&#39;</span><span class="p">,</span> <span class="mf">0.6112</span><span class="p">)]</span>
+</code></pre></div>
+
+<p>Here,
+* "supervised learning machine" has been constructed from "<em>Supervised learning is the machine learning task</em>",
+* "function labeled training" from "<em>... a function from labeled training data ...</em>",
+* "training examples supervised" from "<em>... set of training examples. In supervised learning ...</em>",
+* "signal supervised" from "<em>the supervisory signal). A supervised learning algorithm</em>"
+* "examples supervised" from "<em>training examples. In supervised learning</em>".</p>
+<p>That is, five out of top 10 keywords are extraction errors.</p>
+<div class="highlight"><pre><span></span><code>    <span class="n">Using</span> <span class="n">a</span> <span class="n">custom</span> <span class="n">ngram</span> <span class="n">generator</span> <span class="n">on</span> <span class="n">the</span> <span class="n">same</span> <span class="nb">input</span> <span class="n">text</span><span class="p">,</span> <span class="n">we</span> <span class="n">get</span><span class="p">:</span>
+
+    <span class="n">vectorizer</span> <span class="o">=</span> <span class="n">CountVectorizer</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">=</span><span class="n">spacy_nlp</span><span class="p">,</span> <span class="n">stop_words</span><span class="o">=</span><span class="s2">&quot;english&quot;</span><span class="p">,</span> <span class="n">ngram_range</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="n">keywords</span> <span class="o">=</span> <span class="n">kw_model</span><span class="o">.</span><span class="n">extract_keywords</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">vectorizer</span><span class="o">=</span><span class="n">vectorizer</span><span class="p">,</span> <span class="n">top_n</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">keywords</span>
+
+<span class="p">:::</span><span class="n">python</span>
+    <span class="p">[(</span><span class="s1">&#39;supervised learning algorithm&#39;</span><span class="p">,</span> <span class="mf">0.6992</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;supervised learning&#39;</span><span class="p">,</span> <span class="mf">0.6779</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;supervised&#39;</span><span class="p">,</span> <span class="mf">0.6676</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;learning algorithm&#39;</span><span class="p">,</span> <span class="mf">0.5632</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;training data&#39;</span><span class="p">,</span> <span class="mf">0.5271</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;learning&#39;</span><span class="p">,</span> <span class="mf">0.4813</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;training examples&#39;</span><span class="p">,</span> <span class="mf">0.4668</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;training&#39;</span><span class="p">,</span> <span class="mf">0.4134</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="mf">0.3947</span><span class="p">),</span>
+     <span class="p">(</span><span class="s1">&#39;class labels&#39;</span><span class="p">,</span> <span class="mf">0.389</span><span class="p">)]</span>
+</code></pre></div>
+
+<p>Which are much more meaningful phrases.</p>
+  </div>
+<section class="social-tools">
+
+    <div class="social-tools__title">
+      <p>Share this post</p>
+    </div>
+
+    <div class="social-tools__buttons">
+      <a class="tweet-blogpost-button"
+         href="https://twitter.com/share?text=Viktor Pekar - Accurate keyword extraction with customised KeyBERT"
+         onClick="window.open(encodeURI(decodeURI(this.href)), 'tweetwindow', 'width=650, height=470'); return false;" >
+        <i class="fab fa-twitter"></i>
+      </a>
+
+      <a class="facebook-share-button"
+         href="https://www.facebook.com/sharer/sharer.php?u=https://vpekar.github.io/accurate-keyword-extraction-with-customised-keybert.html"
+         onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;" >
+        <i class="fab fa-facebook"></i>
+      </a>
+
+      <a class="pocket-add-button"
+         href="http://www.tumblr.com/share/link?url=https://vpekar.github.io/accurate-keyword-extraction-with-customised-keybert.html&title=Accurate keyword extraction with customised KeyBERT"
+         onclick="window.open(this.href, 'add-to-get-pocket', 'width=490,height=530');return false;"
+         title="add to tumblr" >
+        <i class="fab fa-tumblr"></i>
+      </a>
+
+      <a class="pocket-add-button"
+         href="https://getpocket.com/edit?url=https://vpekar.github.io/accurate-keyword-extraction-with-customised-keybert.html&title=Accurate keyword extraction with customised KeyBERT"
+         onclick="window.open(this.href, 'add-to-get-pocket', 'width=490,height=530');return false;"
+         title="add to pocket" >
+        <i class="fab fa-get-pocket"></i>
+      </a>
+
+
+    </div>
+
+
+</section>
+</article>
+
+
+  </main>
+    <footer>
+      <!--
+      <div class="author__logo">
+          <img src="../images/fb.jpg" alt="logo">
+      </div>-->
+      <section class="author">
+        <!--<div class="author__name">
+          <a href="https://vpekar.github.io/pages/about.html">Viktor Pekar</a>
+          <p></p>
+        </div> -->
+        <div class="author__link">
+          <ul>
+            <li><a href="https://aclanthology.org/people/v/viktor-pekar/" title="aclanthology"><i class="fas fa-link"></i></a></li>
+            <li>
+              <a href="https://twitter.com/pekarv" target="_blank" title="twitter">
+                <i class="fab fa-twitter-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.linkedin.com/in/vpekar/" target="_blank" title="linkedin">
+                <i class="fab fa-linkedin"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://github.com/vpekar" target="_blank" title="github">
+                <i class="fab fa-github-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.researchgate.net/profile/Viktor_Pekar" target="_blank" title="researchgate">
+                <i class="fab fa-researchgate"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://scholar.google.co.uk/citations?user=wZg3myQAAAAJ&hl=en" target="_blank" title="googlescholar">
+                <i class="ai ai-google-scholar-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://dblp.uni-trier.de/pers/hd/p/Pekar_0001:Viktor" target="_blank" title="dblp">
+                <i class="ai ai-dblp-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.semanticscholar.org/author/Viktor-Pekar/32284161" target="_blank" title="semanticscholar">
+                <i class="ai ai-semantic-scholar-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.scopus.com/authid/detail.uri?authorId=20434464100" target="_blank" title="scopus">
+                <i class="ai ai-scopus-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://papers.ssrn.com/sol3/cf_dev/AbsByAuth.cfm?per_id=7821762" target="_blank" title="ssrn">
+                <i class="ai ai-ssrn-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://vpekar.github.io/feed/all.rss.xml" target="_blank" title="Feed">
+                <i class="fas fa-rss-square"></i>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+      <div class="ending-message">
+        <p>&copy; Viktor Pekar. Powered by <a href="http://getpelican.com" target="_blank">Pelican</a>, Theme is using <a href="https://github.com/laughk/pelican-hss" target="_blank">HSS</a>. </p>
+      </div>
+    </footer>
+    <!-- Default Statcounter code for Vpekar.github.io
+    http://vpekar.github.io/ -->
+    <script type="text/javascript">
+    var sc_project=11724865;
+    var sc_invisible=1;
+    var sc_security="f8dc32d7";
+    </script>
+    <script type="text/javascript"
+    src="https://www.statcounter.com/counter/counter.js"
+    async></script>
+    <noscript><div class="statcounter"><a title="hit counter"
+    href="http://statcounter.com/" target="_blank"><img
+    class="statcounter"
+    src="//c.statcounter.com/11724865/0/f8dc32d7/1/" alt="hit
+    counter"></a></div></noscript>
+<!-- End of Statcounter Code -->
+</body>
+</html>

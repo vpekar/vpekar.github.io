@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- ## for client-side less
+  <link rel="stylesheet/less" type="text/css" href="https://vpekar.github.io/theme/css/style.less">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js" type="text/javascript"></script>
+  -->
+  <link rel="icon" type="image/vnd.microsoft.icon" href="https://vpekar.github.io/images/gs.png">
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/normalize.css">
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/style.min.css">
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/pygments.css">
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Roboto+Mono">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://vpekar.github.io/extras/academicons-1.9.4/css/academicons.css"/>
+  <link rel="stylesheet" type="text/css" href="https://vpekar.github.io/theme/css/hatena-bookmark-icon.css">
+  <link rel="stylesheet" type="text/css" href="/static/custom.css">
+
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Viktor Pekar">
+  <meta name="description" content="Posts and writings by Viktor Pekar">
+
+  <link href="https://vpekar.github.io/feed/all.rss.xml" type="application/rss+xml" rel="alternate" title="Viktor Pekar RSS" />
+
+<meta name="keywords" content="Python, Outlier Detection, Anomaly Detection, sklearn">
+
+  <title>
+    Viktor Pekar
+&ndash; Detection of univariate outliers  </title>
+
+</head>
+
+<body>
+  <main>
+    <header>
+      <div class="site-name">
+        <a href="https://vpekar.github.io">Viktor Pekar</a>
+      </div>
+      <p>
+
+      <a href="https://vpekar.github.io/pages/about.html">About</a> |
+      <a href="https://vpekar.github.io/pages/research.html">Research</a> |
+      <a href="https://vpekar.github.io/pages/teaching.html">Teaching</a> |
+      <!--<a href="https://vpekar.github.io/pages/consultancy.html">Consulting</a> | -->
+      <a href="https://vpekar.github.io/index.html">Blog</a> |
+      <a href="https://vpekar.github.io/tags.html">Tags</a> |
+      <a href="https://vpekar.github.io/pages/contact.html">Contact</a>
+
+      <!--
+        <a href="https://vpekar.github.io/archives.html">Archive</a>
+    -->
+
+      </p>
+    </header>
+
+<article>
+  <div class="article__title">
+    <h1>Detection of univariate outliers</h1>
+  </div>
+  <div class="article__meta">
+    <p class="article__meta__post-date">Posted on: Mon 04 May 2026</p>
+ Tags:
+      <a href="https://vpekar.github.io/tag/python.html">#Python</a>,      <a href="https://vpekar.github.io/tag/outlier-detection.html">#Outlier Detection</a>,      <a href="https://vpekar.github.io/tag/anomaly-detection.html">#Anomaly Detection</a>,      <a href="https://vpekar.github.io/tag/sklearn.html">#sklearn</a>    </p>
+  </div>
+  <div class="article__text">
+    <p>Univariate outliers are those observations which deviate from the population only along one feature. An example would be a worker that has a similar education and experience as other members in a team, but that has an unusually high salary.</p>
+<p>Two widely used methods for univariate outlier detection are the <a href="https://medium.com/@noorfatimaafzalbutt/outliers-detection-and-removal-using-iqr-method-e629aa8089a8">IQR</a> and <a href="https://medium.com/@akashsri306/detecting-anomalies-with-z-scores-a-practical-approach-2f9a0f27458d">z-score</a> methods. Scikit-learn, the popular Python package for ML, however, does not implement them. See, for example, <a href="https://github.com/scikit-learn/scikit-learn/discussions/28874">this discussion</a> on the sklearn page on GitHub. The reason seems to be that the core team maintaining sklearn would like to avoid including transformers that change the number of instances in the data (which would be the case if outliers were detected and removed).</p>
+<p>Below is an implementation of the IQR and z-score methods, that, instead of deleting instances, sets the the outlier values for specific features to np.nan. This gives one the choice to handle them further in any preferred way — for example, impute these values, possibly within the preprocessing pipeline, or delete the instances.</p>
+<div class="highlight"><pre><span></span><code>    <span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span>
+    <span class="kn">from</span> <span class="nn">sklearn.utils.validation</span> <span class="kn">import</span> <span class="n">check_is_fitted</span>
+    <span class="kn">from</span> <span class="nn">sklearn.utils.validation</span> <span class="kn">import</span> <span class="n">validate_data</span>
+
+
+    <span class="k">class</span> <span class="nc">UnivariateOutlierDetector</span><span class="p">(</span><span class="n">TransformerMixin</span><span class="p">,</span> <span class="n">BaseEstimator</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;iqr&quot;</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Detect outliers in a univariate series using either the</span>
+<span class="sd">            IQR or the standard deviation method.</span>
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            factor : float, default=1.5</span>
+<span class="sd">                The factor to multiply the IQR or the standard deviation</span>
+<span class="sd">                by to determine the outlier thresholds</span>
+<span class="sd">            method : str, default=&quot;iqr&quot;</span>
+<span class="sd">                The method to use for outlier detection. Either &quot;iqr&quot; or</span>
+<span class="sd">                &quot;zscore&quot;</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">factor</span> <span class="o">=</span> <span class="n">factor</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+
+        <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lower</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">==</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">validate_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">X</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;iqr&quot;</span><span class="p">:</span>
+                <span class="n">q25</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">q75</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">cut_off</span> <span class="o">=</span> <span class="p">(</span><span class="n">q75</span> <span class="o">-</span> <span class="n">q25</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_lower</span> <span class="o">=</span> <span class="n">q25</span> <span class="o">-</span> <span class="n">cut_off</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span> <span class="o">=</span> <span class="n">q75</span> <span class="o">+</span> <span class="n">cut_off</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;zscore&quot;</span><span class="p">:</span>
+                <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_lower</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor</span> <span class="o">*</span> <span class="n">std</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor</span> <span class="o">*</span> <span class="n">std</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_fitted</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Return True to indicate outliers, False to indicate inliers</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">check_is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">==</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">validate_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">reset</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(((</span><span class="n">X</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lower</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">X</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">)),</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Detect outliers and set them to np.nan</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">check_is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">==</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">validate_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">reset</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">)</span>
+            <span class="n">yhat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">X</span><span class="p">[</span><span class="n">yhat</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="k">return</span> <span class="n">X</span>
+
+        <span class="k">def</span> <span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">__sklearn_is_fitted__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Check fitted status and return a Boolean value.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_is_fitted&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_fitted</span>
+</code></pre></div>
+
+<p>The implementation conforms to sklearn’s <a href="https://scikit-learn.org/stable/developers/develop.html#rolling-your-own-estimator">requirements to custom estimator classes</a>, and as such can be included into an <a href="https://scikit-learn.org/stable/modules/compose.html">sklearn</a> or <a href="https://www.sktime.net/en/v0.39.0/api_reference/auto_generated/sktime.transformations.compose.TransformerPipeline.html">sktime</a> Pipeline, along with other preprocessing steps. In the pipeline, it can be followed by an imputer:</p>
+<div class="highlight"><pre><span></span><code>    <span class="kn">from</span> <span class="nn">sklearn.pipeline</span> <span class="kn">import</span> <span class="n">Pipeline</span>
+    <span class="kn">from</span> <span class="nn">sklearn.impute</span> <span class="kn">import</span> <span class="n">SimpleImputer</span>
+
+    <span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="kn">import</span> <span class="n">make_regression</span>
+
+    <span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">make_regression</span><span class="p">(</span>
+        <span class="n">n_samples</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+        <span class="n">n_features</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">noise</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span>
+    <span class="p">)</span>
+
+    <span class="n">pipeline</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
+        <span class="p">(</span><span class="s2">&quot;outlier_detector&quot;</span><span class="p">,</span> <span class="n">UnivariateOutlierDetector</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;zscore&quot;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s2">&quot;imputer&quot;</span><span class="p">,</span> <span class="n">SimpleImputer</span><span class="p">(</span><span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">)),</span>
+    <span class="p">])</span>
+
+    <span class="n">pipeline</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+    <span class="n">y_pred</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</code></pre></div>
+  </div>
+<section class="social-tools">
+
+    <div class="social-tools__title">
+      <p>Share this post</p>
+    </div>
+
+    <div class="social-tools__buttons">
+      <a class="tweet-blogpost-button"
+         href="https://twitter.com/share?text=Viktor Pekar - Detection of univariate outliers"
+         onClick="window.open(encodeURI(decodeURI(this.href)), 'tweetwindow', 'width=650, height=470'); return false;" >
+        <i class="fab fa-twitter"></i>
+      </a>
+
+      <a class="facebook-share-button"
+         href="https://www.facebook.com/sharer/sharer.php?u=https://vpekar.github.io/detection-of-univariate-outliers.html"
+         onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;" >
+        <i class="fab fa-facebook"></i>
+      </a>
+
+      <a class="pocket-add-button"
+         href="http://www.tumblr.com/share/link?url=https://vpekar.github.io/detection-of-univariate-outliers.html&title=Detection of univariate outliers"
+         onclick="window.open(this.href, 'add-to-get-pocket', 'width=490,height=530');return false;"
+         title="add to tumblr" >
+        <i class="fab fa-tumblr"></i>
+      </a>
+
+      <a class="pocket-add-button"
+         href="https://getpocket.com/edit?url=https://vpekar.github.io/detection-of-univariate-outliers.html&title=Detection of univariate outliers"
+         onclick="window.open(this.href, 'add-to-get-pocket', 'width=490,height=530');return false;"
+         title="add to pocket" >
+        <i class="fab fa-get-pocket"></i>
+      </a>
+
+
+    </div>
+
+
+</section>
+</article>
+
+
+  </main>
+    <footer>
+      <!--
+      <div class="author__logo">
+          <img src="../images/fb.jpg" alt="logo">
+      </div>-->
+      <section class="author">
+        <!--<div class="author__name">
+          <a href="https://vpekar.github.io/pages/about.html">Viktor Pekar</a>
+          <p></p>
+        </div> -->
+        <div class="author__link">
+          <ul>
+            <li><a href="https://aclanthology.org/people/v/viktor-pekar/" title="aclanthology"><i class="fas fa-link"></i></a></li>
+            <li>
+              <a href="https://twitter.com/pekarv" target="_blank" title="twitter">
+                <i class="fab fa-twitter-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.linkedin.com/in/vpekar/" target="_blank" title="linkedin">
+                <i class="fab fa-linkedin"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://github.com/vpekar" target="_blank" title="github">
+                <i class="fab fa-github-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.researchgate.net/profile/Viktor_Pekar" target="_blank" title="researchgate">
+                <i class="fab fa-researchgate"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://scholar.google.co.uk/citations?user=wZg3myQAAAAJ&hl=en" target="_blank" title="googlescholar">
+                <i class="ai ai-google-scholar-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://dblp.uni-trier.de/pers/hd/p/Pekar_0001:Viktor" target="_blank" title="dblp">
+                <i class="ai ai-dblp-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.semanticscholar.org/author/Viktor-Pekar/32284161" target="_blank" title="semanticscholar">
+                <i class="ai ai-semantic-scholar-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.scopus.com/authid/detail.uri?authorId=20434464100" target="_blank" title="scopus">
+                <i class="ai ai-scopus-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://papers.ssrn.com/sol3/cf_dev/AbsByAuth.cfm?per_id=7821762" target="_blank" title="ssrn">
+                <i class="ai ai-ssrn-square"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://vpekar.github.io/feed/all.rss.xml" target="_blank" title="Feed">
+                <i class="fas fa-rss-square"></i>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+      <div class="ending-message">
+        <p>&copy; Viktor Pekar. Powered by <a href="http://getpelican.com" target="_blank">Pelican</a>, Theme is using <a href="https://github.com/laughk/pelican-hss" target="_blank">HSS</a>. </p>
+      </div>
+    </footer>
+    <!-- Default Statcounter code for Vpekar.github.io
+    http://vpekar.github.io/ -->
+    <script type="text/javascript">
+    var sc_project=11724865;
+    var sc_invisible=1;
+    var sc_security="f8dc32d7";
+    </script>
+    <script type="text/javascript"
+    src="https://www.statcounter.com/counter/counter.js"
+    async></script>
+    <noscript><div class="statcounter"><a title="hit counter"
+    href="http://statcounter.com/" target="_blank"><img
+    class="statcounter"
+    src="//c.statcounter.com/11724865/0/f8dc32d7/1/" alt="hit
+    counter"></a></div></noscript>
+<!-- End of Statcounter Code -->
+</body>
+</html>
